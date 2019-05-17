@@ -1,0 +1,24 @@
+sudo: required
+language: node_js
+node_js:
+  - 10
+services:
+  - docker
+install:
+  - npm install -D
+  - npm run lint
+  - npm run lint-test
+before_script:
+  - docker run -v /tmp/data:/data --name "red" -d -p 127.0.0.1:6379:6379 redis redis-server --appendonly yes
+  - sleep 30
+  - docker logs red
+script:
+  - npm run test
+after_script: 
+  - npm run coverage
+  - docker logs red
+  - docker kill red
+  - docker rm red
+
+
+
