@@ -1,6 +1,5 @@
 # pointomatic
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/DrPaulBrewer/pointomatic.svg)](https://greenkeeper.io/)
 [![Build Status](https://travis-ci.org/DrPaulBrewer/pointomatic.svg?branch=master)](https://travis-ci.org/DrPaulBrewer/pointomatic)
 [![Coverage Status](https://coveralls.io/repos/github/DrPaulBrewer/pointomatic/badge.svg?branch=master)](https://coveralls.io/github/DrPaulBrewer/pointomatic?branch=master)
 
