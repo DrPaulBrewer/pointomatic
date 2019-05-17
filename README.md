@@ -152,6 +152,14 @@ Warning:  Testing will FLUSHALL and DELETES THE ENTIRE DATABSE on localhost.
 ```
 npm test
 ```
+
+After running npm test, you may want to delete the redis docker container.
+
+```
+docker kill red
+docker rm red
+```
+
 ### Copyright
 
 Copyright 2019 Paul Brewer, Economic and Financial Technology Consulting LLC
