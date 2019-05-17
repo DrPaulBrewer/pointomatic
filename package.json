@@ -28,10 +28,11 @@
   "devDependencies": {
     "coveralls": "^3.0.3",
     "eslint": "^5.16.0",
+    "ioredis": "^4.9.3",
     "mocha": "^6.1.4",
     "nyc": "^14.1.1",
-    "should": "^13.2.3",
-    "ioredis": "^4.9.3"
+    "object.entries": "^1.1.0",
+    "should": "^13.2.3"
   },
   "dependencies": {
     "@hapi/joi": "^15.0.3"
