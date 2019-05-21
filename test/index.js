@@ -1,6 +1,7 @@
 /* eslint-env node, mocha */
 
 const assert = require('assert');
+const crypto = require('crypto');
 const fromEntries = require('object.fromentries');
 require('should');
 const pointomatic = require('../index.js');
@@ -59,6 +60,42 @@ function testDataset(n){
 }
 
 
+// encryption/decryption based on https://stackoverflow.com/a/41044522/103081
+
+const eKey = "webassemblyseemslikeareimplementationofJava";
+const eAlgorithm = 'blowfish';
+
+function cryptoEncrypt(text){
+  const cipher = crypto.createCipher(eAlgorithm, eKey);
+  let ciphered = cipher.update(text, 'utf8', 'base64');
+  ciphered += cipher.final('base64');
+  return ciphered;
+}
+
+function cryptoDecrypt(ciphered){
+  const decipher = crypto.createDecipher(eAlgorithm, eKey);
+  let deciphered = decipher.update(ciphered, 'base64', 'utf8');
+  deciphered += decipher.final('utf8');
+  return deciphered;
+}
+
+// hashing
+// see https://stackoverflow.com/a/7480211/103081
+
+const hKey = "impossible.to.reconstruct";
+const hAlgorithm = "sha1";
+function hEncrypt(text){
+    const hmac = crypto.createHmac(hAlgorithm, hKey);
+    return hmac.update(text).digest('base64');
+}
+
+function throws(){
+    throw new Error("no decryption functionality for this encoding");
+}
+
+
+// ----------------------
+
 const specs = [
   {
     ioredis,
@@ -79,6 +116,26 @@ const specs = [
     decrypt: reverse,
     log: true,
     invalid: (s)=>((typeof(s)!=='string') || (s.length!==8))
+  },
+  {
+    ioredis,
+    name: 'points',
+    min: 0,
+    max: 150,
+    encrypt: cryptoEncrypt,
+    decrypt: cryptoDecrypt,
+    log: true,
+    invalid: (s)=>((typeof(s)!=='string') || (s.length!==8))
+  },
+  {
+    ioredis,
+    name: 'points',
+    min: 0,
+    max: 150,
+    encrypt: hEncrypt,
+    decrypt: throws,
+    log: true,
+    invalid: (s)=>((typeof(s)!=='string') || (s.length!==8))
   }
 ];
 
@@ -92,15 +149,23 @@ function commonTests(spec, specnumber){
       const allRawPairs = await points.getAllRawPairs();
       const allRaw = Object.fromEntries(allRawPairs);
       allRaw.should.deepEqual(exraw);
-      const allPairs = await points.getAllPairs();
-      const all = Object.fromEntries(allPairs);
-      all.should.deepEqual(dataset);
+      let allPairs = [];
+      let all = null;
+      if (spec.decrypt===throws){
+        points.getAllPairs().should.be.rejectedWith(/no decryption/);
+      } else {
+        allPairs = await points.getAllPairs();
+        all = Object.fromEntries(allPairs);
+        all.should.deepEqual(dataset);
+      }
       const rangeRawPairs = await points.getAllRawPairs(points.min,points.max);
       const rangeRaw = Object.fromEntries(rangeRawPairs);
       rangeRaw.should.deepEqual(exraw);
-      const rangePairs = await points.getAllPairs(points.min,points.max);
-      const range = Object.fromEntries(rangePairs);
-      range.should.deepEqual(dataset);
+      if (spec.decrypt!==throws){
+        const rangePairs = await points.getAllPairs(points.min,points.max);
+        const range = Object.fromEntries(rangePairs);
+        range.should.deepEqual(dataset);
+      }
     };
   }
   const dataset10k = testDataset(10000);
@@ -270,16 +335,18 @@ function commonTests(spec, specnumber){
     expected[points.encrypt("bbbbbbbb")] = 30;
     result.should.deepEqual(expected);
   });
-  it('points.getAllPairs() returns array of pairs with correct keys and values', async function(){
-    const pairs = await points.getAllPairs();
-    const result = Object.fromEntries(pairs);
-    const expected = {
-      abcdefgh: 100,
-      bbbbbbbb: 30
-    };
-    result.should.deepEqual(expected);
-  });
-  it('create 10000 keys, verified random values, outcomes match input specs, getAllRaw, getAll, getCreateReason matches', async function(){
+  if (spec.decrypt!==throws){
+    it('points.getAllPairs() returns array of pairs with correct keys and values', async function(){
+      const pairs = await points.getAllPairs();
+      const result = Object.fromEntries(pairs);
+      const expected = {
+        abcdefgh: 100,
+        bbbbbbbb: 30
+      };
+      result.should.deepEqual(expected);
+    });
+  }
+  it('create 10000 keys, verified random values, outcomes match input specs, getCreateReason matches', async function(){
     await Promise.all(Object.entries(dataset10k).map(async ([k,v],n)=>{
       const result = await points.create(k,v,"#"+n);
       result.should.deepEqual({key: k, value: v});
@@ -343,34 +410,49 @@ function commonTests(spec, specnumber){
       entry.value.should.deepEqual(dataset10k[k]-20);
     }));
   });
-  it('points.getAllPairs values should be 20 points lower if and only if activated set member', async function(){
-    const expected = Object.assign({}, dataset10k);
-    activatedKeys.forEach((k)=>{expected[k] -= 20; });
-    const allPairs = await points.getAllPairs();
-    const all = Object.fromEntries(allPairs);
-    all.should.deepEqual(expected);
-  });
-  let lowPoints = null;
-  it('points.getAllPairs(...points.belowMinRange()) should match expected', async function(){
+  if (spec.decrypt!==throws){
+    it('points.getAllPairs values should be 20 points lower if and only if activated set member', async function(){
+      const expected = Object.assign({}, dataset10k);
+      activatedKeys.forEach((k)=>{expected[k] -= 20; });
+      const allPairs = await points.getAllPairs();
+      const all = Object.fromEntries(allPairs);
+      all.should.deepEqual(expected);
+    });
+  }
+  let lowRawPoints = null;
+  let expectedLowPoints;
+  it('points.getAllRawPairs(...points.belowMinRange()) should match expected', async function(){
     const expected = Object.assign({}, dataset10k);
     activatedKeys.forEach((k)=>{expected[k] -= 20; });
     Object.keys(expected).filter((k)=>(expected[k]>=points.min)).forEach((k)=>{ delete expected[k]; });
-    const allPairs = await points.getAllPairs(...points.belowMinRange());
-    lowPoints = Object.fromEntries(allPairs);
-    lowPoints.should.deepEqual(expected);
+    expectedLowPoints = expected;
+    const exraw = {};
+    Object.keys(expected).forEach((k)=>{exraw[points.encrypt(k)]=expected[k];});
+    const lowRawPairs = await points.getAllRawPairs(...points.belowMinRange());
+    lowRawPoints = Object.fromEntries(lowRawPairs);
+    lowRawPoints.should.deepEqual(exraw);
   });
+  let lowPoints = null;
+  if (spec.decrypt!==throws){
+    it('points.getAllPairs(...points.belowMinRange()) should match expected', async function(){
+      const allPairs = await points.getAllPairs(...points.belowMinRange());
+      lowPoints = Object.fromEntries(allPairs);
+      lowPoints.should.deepEqual(expectedLowPoints);
+    });
+  }
   it('points.reap("expended") should return the correct deletion count ', async function(){
     const reapCount = await points.reap("expended");
-    reapCount.should.deepEqual(Object.keys(lowPoints).length);
+    reapCount.should.deepEqual(Object.keys(lowRawPoints).length);
   });
-  it('points.getAllPairs should return the correct post-reap keys and values', async function(){
-    const expected = Object.assign({}, dataset10k);
-    activatedKeys.forEach((k)=>{expected[k] -= 20; });
-    Object.keys(lowPoints).forEach((k)=>{ delete expected[k]; });
-    const allPairs = await points.getAllPairs();
-    const all = Object.fromEntries(allPairs);
-    all.should.deepEqual(expected);
-  });
+  if (spec.decrypt!==throws){
+    it('points.getAllPairs should return the correct post-reap keys and values', async function(){
+      const expected = Object.assign({}, dataset10k);
+      activatedKeys.forEach((k)=>{expected[k] -= 20;if (expected[k]<points.min) delete expected[k];});
+      const allPairs = await points.getAllPairs();
+      const all = Object.fromEntries(allPairs);
+      all.should.deepEqual(expected);
+    });
+  }
   if (spec.log){
     it('getParsedLogEntry attempt to access invalid log should return null', async function(){
       const result = await points.getParsedLogEntry('buddyLog',points.encrypt('bbbbbbbb'));
@@ -397,12 +479,13 @@ function commonTests(spec, specnumber){
       delete result[1].utc;
       result.should.deepEqual(expected);
     });
-    it('getDeleteReason should yield reason "expended" for each key in lowPoints', async function(){
+    it('getDeleteReason should yield reason "expended" for each key in expectedLowPoints', async function(){
       await Promise.all(
         Object
-        .keys(lowPoints)
+        .keys(expectedLowPoints)
         .map(async(k)=>{
           const logEntry = await points.getDeleteReason(k);
+          logEntry.should.have.properties(['key','utc','reason']);
           logEntry.key.should.deepEqual(k);
           logEntry.reason.should.deepEqual('expended');
         })
