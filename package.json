@@ -1,6 +1,6 @@
 {
   "name": "pointomatic",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "redis-based points/tokens key-key-value manager with create, add, get, getAll, delete, reap, wsum, logging",
   "main": "index.js",
   "scripts": {
