@@ -252,6 +252,25 @@ function commonTests(spec, specnumber){
     }
     bad.should.throw(/method/);
   });
+  // empty testing -- no account keys
+  it('get("abcdefgh") should throw non-existent key', function(){
+    return points.get("abcdefgh").should.be.rejectedWith(/non-existent key/);
+  });
+  it('add("abcdefgh",1) should throw non-existent key', function(){
+    return points.add("abcdefgh",1).should.be.rejectedWith(/non-existent key/);
+  });
+  it('getAllPairs, getAllRawPairs on empty data yields empty array', async function(){
+    const methods = ["getAllPairs","getAllRawPairs"];
+    const args = [[],[points.low,points.high],points.belowMinRange(),points.aboveMaxRange()];
+    const expected = [[[],[],[],[]],[[],[],[],[]]];
+    const result = await Promise.all(
+      methods.map(
+        (m)=>(Promise.all(args.map((a)=>(points[m](...a)))))
+      )
+    );
+    result.should.deepEqual(expected);
+  });
+  // now we attempt to create some accounts
   it('points.create("abc", 150) should throw invalid key', function(){
     return points.create("abc",150).should.be.rejectedWith(/invalid key/);
   });
