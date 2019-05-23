@@ -261,7 +261,7 @@ function commonTests(spec, specnumber){
   });
   it('getAllPairs, getAllRawPairs on empty data yields empty array', async function(){
     const methods = ["getAllPairs","getAllRawPairs"];
-    const args = [[],[points.low,points.high],points.belowMinRange(),points.aboveMaxRange()];
+    const args = [[],[points.min,points.max],points.belowMinRange(),points.aboveMaxRange()];
     const expected = [[[],[],[],[]],[[],[],[],[]]];
     const result = await Promise.all(
       methods.map(
