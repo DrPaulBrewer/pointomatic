@@ -127,7 +127,7 @@ await points.reap(optionalReasonForLog);
 await points.reap("expended");
 // uses redis zremrangebyscore
 // when logging is enabled, first fetches list of keys to be deleted and writes delete logs
-// yields { count: numberOfDeletedAccounts }
+// yields numberOfDeletedAccounts
 
 
 ```
