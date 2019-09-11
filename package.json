@@ -35,6 +35,6 @@
     "should": "^13.2.3"
   },
   "dependencies": {
-    "@hapi/joi": "^15.0.3"
+    "@hapi/joi": "^16.0.0"
   }
 }
