@@ -1,7 +1,7 @@
 # pointomatic
 
 [![Build Status](https://travis-ci.org/DrPaulBrewer/pointomatic.svg?branch=master)](https://travis-ci.org/DrPaulBrewer/pointomatic)
-[![Coverage Status](https://coveralls.io/repos/github/DrPaulBrewer/pointomatic/badge.svg?branch=master)](https://coveralls.io/github/DrPaulBrewer/pointomatic?branch=master) [![Greenkeeper badge](https://badges.greenkeeper.io/DrPaulBrewer/pointomatic.svg)](https://greenkeeper.io/)
+[![Coverage Status](https://coveralls.io/repos/github/DrPaulBrewer/pointomatic/badge.svg?branch=master)](https://coveralls.io/github/DrPaulBrewer/pointomatic?branch=master) 
 
 Redis-based points/tokens key-key-value manager with create, add, get, delete, reap, weighted sums, logging
 
